@@ -15,7 +15,8 @@
       "@infra/*": ["infrastructure/*"],
       "@app/*": ["application/*"],
       "@shared/*": ["shared/*"],
-      "@features/*": ["features/*"]
+      "@features/*": ["features/*"],
+      "@mappers/*": ["mappers/*"]
     },
     "incremental": true,
     "skipLibCheck": true,

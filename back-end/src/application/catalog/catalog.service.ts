@@ -1,5 +1,6 @@
-import { CatalogItem } from '@domain/catalog/catalog-item';
 import { CatalogRepository } from '@infra/catalog/catalog.repository';
+import { seedFilters } from '@infra/seeds/filters-seed';
+import { mapToCatalogItem } from '@mappers/catalog-item.mapper';
 import { Injectable } from '@nestjs/common';
 import { map } from 'rxjs';
 
@@ -10,5 +11,9 @@ export class CatalogService {
   getAll = () =>
     this.repository
       .findAll()
-      .pipe(map((catalogItems) => catalogItems.map(CatalogItem.create)));
+      .pipe(map((catalogItems) => catalogItems.map(mapToCatalogItem)));
+
+  getFilters() {
+    return seedFilters;
+  }
 }

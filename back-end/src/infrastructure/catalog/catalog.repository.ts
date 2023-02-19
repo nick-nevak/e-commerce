@@ -1,29 +1,38 @@
-import { ProductSchema } from '@infra/products/product.schema';
+import { ProductModel } from '@infra/products/product.schema';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, ObjectId } from 'mongoose';
 import { from } from 'rxjs';
 
-export type CatalogItemProjection = {
+export type CatalogItemModel = {
+  //id: string;
   title: string;
   brand: string;
   price: number;
   description: string;
-  imageUrls: string[];
+  imageUrl: string;
 };
+
+export type CatalogItemDocument = { _id: ObjectId } & CatalogItemModel &
+  Document;
 
 export class CatalogRepository {
   constructor(
-    @InjectModel(ProductSchema.name)
-    private readonly model: Model<CatalogItemProjection>,
+    @InjectModel(ProductModel.name)
+    private readonly model: Model<CatalogItemDocument>,
   ) {}
 
-  private readonly projection: { [K in keyof CatalogItemProjection]: true } = {
-    title: true,
-    price: true,
-    description: true,
-    brand: true,
-    imageUrls: true,
+  private readonly projection: { [K in keyof CatalogItemModel]: any } = {
+    title: 1,
+    price: 1,
+    description: 1,
+    brand: 1,
+    imageUrl: { $arrayElemAt: ['$imageUrls', 0] },
   };
 
-  findAll = () => from(this.model.find({}, this.projection).lean().exec());
+  findAll = () =>
+    from(
+      this.model
+        .aggregate<CatalogItemModel>([{ $project: this.projection }])
+        .exec(),
+    );
 }

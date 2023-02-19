@@ -1,4 +1,5 @@
 import { ProductsService } from '@app/product/products.service';
+import { mapProductToDto } from '@mappers/product.mapper';
 import {
   Body,
   Controller,
@@ -8,7 +9,7 @@ import {
   Post,
   Put,
 } from '@nestjs/common';
-import { mapProductToDto, ProductDto } from '@shared/dto/product.dto';
+import { ProductDto } from '@shared/dto/product.dto';
 import { map } from 'rxjs/operators';
 
 @Controller('products')
@@ -24,6 +25,7 @@ export class ProductsController {
 
   @Get(':id')
   getProductById(@Param('id') id: string) {
+    console.warn('NEVAK id is:', id);
     return this.serive.getProductById(id).pipe(map(mapProductToDto));
   }
 

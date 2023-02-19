@@ -9,14 +9,14 @@ type Props = {
 }
 const ProductCard = ({ product, onClick }: Props) => {
   return (
-    <Card sx={{ maxWidth: 345 }} onClick={() => onClick(product)}>
-      <CardActionArea>
+    <Card onClick={() => onClick(product)}>
+      <CardActionArea sx={{ width: 300, height: 350 }}>
         <CardMedia
-          sx={{ height: 140 }}
+          sx={{ height: 200 }}
           image={product.imageUrl}
           title={product.title}
         />
-        <CardContent>
+        <CardContent sx={{ height: '100%' }}>
           <Typography gutterBottom variant="h5" component="h2">
             {product.brand}
           </Typography>

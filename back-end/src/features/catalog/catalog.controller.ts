@@ -1,6 +1,6 @@
 import { CatalogService } from '@app/catalog/catalog.service';
 import { Controller, Get } from '@nestjs/common';
-import { mapCatalogItemToDto } from '@shared/dto/product.dto copy';
+import { mapToCatalogItemDto } from 'mappers/catalog-item.mapper';
 import { map } from 'rxjs';
 
 @Controller('catalog')
@@ -11,6 +11,11 @@ export class CatalogController {
   getAllProducts() {
     return this.serive
       .getAll()
-      .pipe(map((products) => products.map(mapCatalogItemToDto)));
+      .pipe(map((products) => products.map(mapToCatalogItemDto)));
+  }
+
+  @Get('filters')
+  getFilters() {
+    return this.serive.getFilters();
   }
 }

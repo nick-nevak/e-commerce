@@ -1,4 +1,3 @@
-import styled from "@emotion/styled";
 import { Box } from "@mui/material";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -30,26 +29,18 @@ const CatalogPage = () => {
 
 
   return (
-    <Container>
+    <Box sx={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
       <Box sx={{ flex: 1 }}>
         <CatalogFilters filters={filters} />
       </Box>
-      <Box sx={{ flex: 3 }}>
+      <Box sx={{ flex: 5 }}>
         <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
           <CatalogSorting />
         </Box>
         <ProductsList products={products} onClick={handleProductClick} />
       </Box>
-    </Container>
+    </Box>
   );
 };
 
 export default CatalogPage;
-// generate component
-
-
-const Container = styled.div`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-`;
