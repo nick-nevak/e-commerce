@@ -29,6 +29,9 @@ export class ProductModel {
 
   @Prop([{ size: String, available: Boolean }])
   sizes: { size: string; available: boolean }[];
+
+  // @Prop({ type: String, ref: 'Category' })
+  // category: Category;
 }
 
 export type ProductDocument = { _id: ObjectId } & ProductModel & Document;

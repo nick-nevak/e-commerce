@@ -11,16 +11,28 @@
     "outDir": "./dist",
     "baseUrl": "./src",
     "paths": {
-      "@domain/*": ["domain/*"],
-      "@infra/*": ["infrastructure/*"],
-      "@app/*": ["application/*"],
-      "@shared/*": ["shared/*"],
-      "@features/*": ["features/*"],
-      "@mappers/*": ["mappers/*"]
+      "@domain/*": [
+        "domain/*"
+      ],
+      "@infra/*": [
+        "infrastructure/*"
+      ],
+      "@app/*": [
+        "application/*"
+      ],
+      "@shared/*": [
+        "shared/*"
+      ],
+      "@features/*": [
+        "features/*"
+      ],
+      "@mappers/*": [
+        "mappers/*"
+      ]
     },
     "incremental": true,
     "skipLibCheck": true,
-    "strictNullChecks": false,
+    "strictNullChecks": true,
     "noImplicitAny": false,
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
