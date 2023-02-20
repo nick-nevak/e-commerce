@@ -4,7 +4,6 @@ import { Model, ObjectId } from 'mongoose';
 import { from } from 'rxjs';
 
 export type CatalogItemModel = {
-  //id: string;
   title: string;
   brand: string;
   price: number;
@@ -19,7 +18,7 @@ export class CatalogRepository {
   constructor(
     @InjectModel(ProductModel.name)
     private readonly model: Model<CatalogItemDocument>,
-  ) {}
+  ) { }
 
   private readonly projection: { [K in keyof CatalogItemModel]: any } = {
     title: 1,
@@ -29,10 +28,7 @@ export class CatalogRepository {
     imageUrl: { $arrayElemAt: ['$imageUrls', 0] },
   };
 
-  findAll = () =>
-    from(
-      this.model
-        .aggregate<CatalogItemModel>([{ $project: this.projection }])
-        .exec(),
-    );
+  findAll = () => from(
+    this.model.aggregate<CatalogItemDocument>([{ $project: this.projection }]).exec(),
+  );
 }

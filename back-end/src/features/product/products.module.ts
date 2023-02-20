@@ -1,4 +1,4 @@
-import { ProductsService } from '@app/product/products.service';
+import { ProductsService } from '@app/products.service';
 import { ProductRepository } from '@infra/products/product.repository';
 import { ProductModel, ProductSchema } from '@infra/products/product.schema';
 import { productsSeed } from '@infra/seeds/products-seed';
@@ -16,9 +16,9 @@ import { ProductsController } from './products.controller';
   providers: [ProductsService, ProductRepository],
 })
 export class ProductsModule implements OnApplicationBootstrap {
-  constructor(private readonly productRepository: ProductRepository) {}
+  constructor(private readonly repository: ProductRepository) { }
 
   async onApplicationBootstrap() {
-    await this.productRepository.seed(productsSeed);
+    await this.repository.seed(productsSeed);
   }
 }

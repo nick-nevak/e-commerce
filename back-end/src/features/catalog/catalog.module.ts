@@ -1,4 +1,4 @@
-import { CatalogService } from '@app/catalog/catalog.service';
+import { CatalogService } from '@app/catalog.service';
 import { CatalogRepository } from '@infra/catalog/catalog.repository';
 import { ProductModel, ProductSchema } from '@infra/products/product.schema';
 import { Module } from '@nestjs/common';
@@ -14,4 +14,4 @@ import { CatalogController } from './catalog.controller';
   controllers: [CatalogController],
   providers: [CatalogService, CatalogRepository],
 })
-export class CatalogModule {}
+export class CatalogModule { }

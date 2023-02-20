@@ -1,5 +1,5 @@
-import { ProductsService } from '@app/product/products.service';
-import { mapProductToDto } from '@mappers/product.mapper';
+import { ProductsService } from '@app/products.service';
+import { toProductDto, toProductDtos } from '@mappers/product.mapper';
 import {
   Body,
   Controller,
@@ -7,36 +7,33 @@ import {
   Get,
   Param,
   Post,
-  Put,
+  Put
 } from '@nestjs/common';
 import { ProductDto } from '@shared/dto/product.dto';
 import { map } from 'rxjs/operators';
 
 @Controller('products')
 export class ProductsController {
-  constructor(private readonly serive: ProductsService) {}
+  constructor(private readonly serive: ProductsService) { }
 
   @Get()
   getAllProducts() {
-    return this.serive
-      .getAllProducts()
-      .pipe(map((products) => products.map(mapProductToDto)));
+    return this.serive.getAllProducts().pipe(map(toProductDtos));
   }
 
   @Get(':id')
   getProductById(@Param('id') id: string) {
-    console.warn('NEVAK id is:', id);
-    return this.serive.getProductById(id).pipe(map(mapProductToDto));
+    return this.serive.getProductById(id).pipe(map(toProductDto));
   }
 
   @Post()
   createProduct(@Body() product: ProductDto) {
-    return this.serive.createProduct(product).pipe(map(mapProductToDto));
+    return this.serive.createProduct(product).pipe(map(toProductDto));
   }
 
   @Put(':id')
   updateProduct(@Param('id') id: string, @Body() product: ProductDto) {
-    return this.serive.updateProduct(id, product).pipe(map(mapProductToDto));
+    return this.serive.updateProduct(id, product).pipe(map(toProductDto));
   }
 
   @Delete(':id')

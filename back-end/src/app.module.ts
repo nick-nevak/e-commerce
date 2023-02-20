@@ -1,4 +1,5 @@
 import { CatalogModule } from '@features/catalog/catalog.module';
+import { CategoriesModule } from '@features/categories/categories.module';
 import { ProductsModule } from '@features/product/products.module';
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -9,8 +10,9 @@ import { AppController } from './app.controller';
   imports: [
     ProductsModule,
     CatalogModule,
+    CategoriesModule,
     MongooseModule.forRoot(connectionString),
   ],
   controllers: [AppController],
 })
-export class AppModule {}
+export class AppModule { }
