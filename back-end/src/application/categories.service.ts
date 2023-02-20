@@ -1,19 +1,37 @@
 import { CategoriesRepository } from '@infra/categories/categories.repository';
-import { toCategoriesTree } from '@mappers/categories.mapper';
+import { toCategories, toCategoriesTree } from '@mappers/categories.mapper';
 import { Injectable } from '@nestjs/common';
-import { from, map, tap } from 'rxjs';
+import { throwErrorIfNullish } from '@shared/utils/rx/rx-js';
+import { map, switchMap } from 'rxjs';
 
 @Injectable()
 export class CategoriesService {
   constructor(private readonly repository: CategoriesRepository) { }
 
-  getAll = () => from(this.repository.findWithDepthById('63f29af1f5b735243ec7049d')).pipe(
-    tap(x => {
-      console.warn('CATEGORIES FROM DB', JSON.stringify(x))
-    }),
-    map(toCategoriesTree),
-    tap(x => {
-      //console.warn('CATEGORIES AFTER MAPPING');
-    }),
-  );
+  getFullTree = () =>
+    this.repository.findByName('root').pipe(
+      throwErrorIfNullish('Root category not found'),
+      switchMap(({ id }) => this.getTreeById(id)),
+    );
+
+  getTreeById = (id: string) =>
+    this.repository.findWithDepthById(id).pipe(
+      map(toCategoriesTree)
+    );
+
+  getDirectChildrenById = (id: string) =>
+    this.repository.findDirectChildrenById(id).pipe(
+      map(toCategories)
+    );
+
+  getPathById = (id: string) =>
+    this.repository.findPathById(id).pipe(
+      map(toCategories)
+    );
+
+  getLeafs = () =>
+    this.repository.findLeafs().pipe(
+      map(toCategories)
+    );
+
 }

@@ -14,4 +14,5 @@ export class CategoryModel {
 }
 
 export type CategoryDocument = CategoryModel & Document;
+export type CategoryDocumentWithDepth = CategoryDocument & { depth: number };
 export const CategorySchema = SchemaFactory.createForClass(CategoryModel);

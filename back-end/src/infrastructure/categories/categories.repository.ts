@@ -4,7 +4,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { log, proceed, throwErrorIfNullish } from '@shared/utils/rx/rx-js';
 import mongoose, { Model } from 'mongoose';
 import { concat, firstValueFrom, forkJoin, from, map, of, switchMap, tap } from 'rxjs';
-import { CategoryDocument, CategoryModel } from './categories.schema';
+import { CategoryDocument, CategoryDocumentWithDepth, CategoryModel } from './categories.schema';
 
 const ObjectId = mongoose.Types.ObjectId;
 
@@ -61,152 +61,111 @@ export class CategoriesRepository {
       map(() => null)
     );
 
+  findByName = (name: string) =>
+    from(this.model.findOne({ name }).exec());
 
-  getAll = async () => {
-    return this.model.aggregate([
+  findLeafs = () => from(this.model.find(
+    { $expr: { $eq: [{ $sum: ["$left", 1] }, "$right"] } },
+    { _id: 1, name: 1 }
+  ).exec());
+
+  findPathById = (id: string) =>
+    from(this.model.aggregate<CategoryDocument>([
+      { $match: { _id: new mongoose.Types.ObjectId(id) } },
       {
         $lookup: {
           from: "categories",
-          let: { nodeLeft: "$left", nodeRight: "$right" },
+          let: { l: "$left", r: "$right", nodeName: "$name" },
           pipeline: [
             {
               $match: {
                 $expr: {
-                  $and: [
-                    { $lte: ["$left", "$$nodeLeft"] },
-                    { $gte: ["$right", "$$nodeRight"] }
-                  ]
+                  $and: [{ $lte: ["$left", "$$l"] }, { $gte: ["$right", "$$r"] },]
                 }
               }
             },
-            { $count: "depth" }
+            { $sort: { left: 1 } }
           ],
           as: "parents"
         }
       },
       { $unwind: "$parents" },
-      { $addFields: { depth: "$parents.depth" } },
-      { $sort: { left: 1 } },
-      { $project: { _id: 1, name: 1, depth: 1, left: 1, right: 1 } }
-    ])
-  }
+      { $replaceRoot: { newRoot: '$parents' } }
+    ]).exec());
 
-  findLeafs = () => from(this.model.find(
-    { $expr: { $eq: [{ $sum: ["$left", 1] }, "$right"] } },
-    { _id: 1, name: 1, }
-  ))
-
-  findPath = (id: string) => from(this.model.aggregate([
-    { $match: { _id: new mongoose.Types.ObjectId(id) } },
-    {
-      $lookup: {
-        from: "categories",
-        let: { l: "$left", r: "$right", nodeName: "$name" },
-        pipeline: [
-          {
-            $match: {
-              $expr: {
-                $and: [{ $lte: ["$left", "$$l"] }, { $gte: ["$right", "$$r"] },]
-              }
-            }
-          },
-          { $sort: { left: 1 } }
-        ],
-        as: "parents"
-      }
-    },
-    { $unwind: "$parents" },
-    { $replaceRoot: { newRoot: '$parents' } }
-  ]));
-
-  findDirectChildren = (id: string) => from(this.model.aggregate([
-    { $match: { _id: new mongoose.Types.ObjectId(id) } },
-    {
-      $lookup: {
-        from: "categories",
-        let: { nodeLeft: "$l", nodeRight: "$r" },
-        pipeline: [
-          {
-            $match: {
-              $expr: {
-                $and: [{ $gte: ["$l", "$$nodeLeft"] }, { $lte: ["$r", "$$nodeRight"] }]
-              }
+  findDirectChildrenById = (id: string) =>
+    from(this.model.findById(id).exec()).pipe(
+      throwErrorIfNullish(),
+      switchMap((parent) =>
+        from(this.model.aggregate<CategoryDocumentWithDepth>([{
+          $match: {
+            $expr: {
+              $and: [{ $gt: ["$left", parent.left] }, { $lt: ["$right", parent.right] },]
             }
           }
-        ],
-        as: "children"
-      }
-    },
-    //{ $unwind: "$parents" },
-    { $addFields: { children: "$children" } },
-    { $sort: { left: 1 } },
-    { $project: { _id: 1, name: 1, children: 1, left: 1, right: 1 } }
-  ]));
+        },
+        {
+          $lookup: {
+            from: "categories",
+            let: { nodeLeft: "$left", nodeRight: "$right" },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $and: [
+                      { $lte: ["$left", "$$nodeLeft"] }, { $gte: ["$right", "$$nodeRight"] },
+                      { $gt: ["$left", parent.left] }, { $lt: ["$right", parent.right] }
+                    ]
+                  }
+                }
+              },
+              { $count: "depth" }
+            ],
+            as: "parents"
+          }
+        },
+        { $unwind: "$parents" },
+        { $match: { $expr: { $eq: [1, "$parents.depth"] } } },
+        { $addFields: { depth: "$parents.depth" } },
+        { $sort: { left: 1 } },
+        { $project: { _id: 1, name: 1, depth: 1, left: 1, right: 1 } }
+        ]).exec()
+        )
+      )
+    );
 
 
   findWithDepthById = (id: string) =>
     from(this.model.findById(id).exec()).pipe(
-      throwErrorIfNullish(),
-      tap(x => console.log('PARENT', x)),
-      switchMap((parent) => from(this.model.aggregate([{
-        $match: {
-          $expr: {
-            $and: [{ $gt: ["$left", parent.left] }, { $lt: ["$right", parent.right] },]
-          }
-        }
-      },
-      {
-        $lookup: {
-          from: "categories",
-          let: { nodeLeft: "$left", nodeRight: "$right" },
-          pipeline: [
-            {
-              $match: {
-                $expr: {
-                  $and: [
-                    { $lte: ["$left", "$$nodeLeft"] }, { $gte: ["$right", "$$nodeRight"] },
-                    { $gt: ["$left", parent.left] }, { $lt: ["$right", parent.right] }
-                  ]
-                }
-              }
-            },
-            { $count: "depth" }
-          ],
-          as: "parents"
-        }
-      },
-      { $unwind: "$parents" },
-      { $match: { $expr: { $eq: [1, "$parents.depth"] } } },
-      { $addFields: { depth: "$parents.depth" } },
-      { $sort: { left: 1 } },
-      { $project: { _id: 1, name: 1, depth: 1, left: 1, right: 1 } }
-      ]))
-      )
-    );
-
-  findAllWithDepth = () => from(this.model.aggregate([
-    {
-      $lookup: {
-        from: "categories",
-        let: { nodeLeft: "$left", nodeRight: "$right" },
-        pipeline: [
+      throwErrorIfNullish(`Category with id: ${id} is not found`),
+      switchMap((parent) =>
+        from(this.model.aggregate<CategoryDocumentWithDepth>([
           {
-            $match: {
-              $expr: {
-                $and: [{ $lte: ["$left", "$$nodeLeft"] }, { $gte: ["$right", "$$nodeRight"] }]
-              }
+            $lookup: {
+              from: "categories",
+              let: { l: "$left", r: "$right" },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: {
+                      $and: [
+                        { $lte: ["$left", "$$l"] }, { $gte: ["$right", "$$r"] },
+                        { $gte: ["$left", parent.left] }, { $lte: ["$right", parent.right] }
+                      ]
+                    }
+                  }
+                },
+                { $count: "depth" }
+              ],
+              as: "parents"
             }
           },
-          { $count: "depth" }
-        ],
-        as: "parents"
-      }
-    },
-    { $unwind: "$parents" },
-    { $addFields: { depth: "$parents.depth" } },
-    { $sort: { left: 1 } },
-    { $project: { _id: 1, name: 1, depth: 1, left: 1, right: 1 } }
-  ]));
+          { $unwind: "$parents" },
+          { $addFields: { depth: "$parents.depth" } },
+          { $sort: { left: 1 } }
+        ]).exec())
+      )
+    );
 
 
   getParentsOf = (categoryId: string) =>

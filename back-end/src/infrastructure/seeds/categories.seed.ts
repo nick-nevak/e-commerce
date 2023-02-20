@@ -7,12 +7,12 @@ export type CategorySeed = {
 
 export const categoriesSeed = {
   name: 'root',
-  children: generateCategories(2)
+  children: generateCategories(4)
 };
 
 function generateCategories(depth: number): CategorySeed[] {
   const categories: CategorySeed[] = [];
-  const count = faker.datatype.number({ min: 2, max: 2 })
+  const count = faker.datatype.number({ min: 2, max: 5 });
 
   for (let i = 0; i < count; i++) {
     const category: CategorySeed = {
