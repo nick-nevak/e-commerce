@@ -1,23 +1,25 @@
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Toolbar from '@mui/material/Toolbar';
-import Typography from '@mui/material/Typography';
+import { useRef } from 'react';
+import CategoriesToggle from './categories/CategoriesToggle';
 import ThemeSwitcher from './ThemeSwitcher';
 
 const Header = () => {
+  const appBarRef = useRef<HTMLDivElement>(null);
+
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <AppBar position="static">
-        <Toolbar>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Catalog
-          </Typography>
-          <Box>
-            <ThemeSwitcher />
-          </Box>
+      <AppBar ref={appBarRef} position="static">
+        <Toolbar sx={{ justifyContent: 'space-between' }}>
+          <CategoriesToggle anchorEl={appBarRef} />
+          <Box
+            sx={{ justifySelf: 'flex-end' }}
+            children={<ThemeSwitcher />}
+          />
         </Toolbar>
       </AppBar>
-    </Box>
+    </Box >
   );
 }
 

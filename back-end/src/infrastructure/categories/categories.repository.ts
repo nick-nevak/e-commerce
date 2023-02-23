@@ -2,9 +2,9 @@ import { CategorySeed } from '@infra/seeds/categories.seed';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { log, proceed, throwErrorIfNullish } from '@shared/utils/rx/rx-js';
-import mongoose, { Model } from 'mongoose';
+import mongoose, { Model, PipelineStage } from 'mongoose';
 import { concat, firstValueFrom, forkJoin, from, map, of, switchMap, tap } from 'rxjs';
-import { CategoryDocument, CategoryDocumentWithDepth, CategoryModel } from './categories.schema';
+import { CategoryDocument, CategoryModel } from './categories.schema';
 
 const ObjectId = mongoose.Types.ObjectId;
 
@@ -15,6 +15,65 @@ export class CategoriesRepository {
     @InjectModel(CategoryModel.name) private model: Model<CategoryDocument>,
   ) { }
 
+  findByName = (name: string) =>
+    from(this.model.findOne({ name }).exec());
+
+  findChildrenOf = (categoryId: string) =>
+    from(this.model.findOne({ _id: categoryId }).exec()).pipe(
+      throwErrorIfNullish(`Category with id ${categoryId} not found`),
+      switchMap(({ left, right }: CategoryDocument) => this.model
+        .find({
+          left: { $gte: left },
+          right: { $lte: right },
+        })
+        .sort({ left: 1, right: -1 })
+        .exec()
+      ),
+      tap((x) => { console.log('fetched'); }),
+    );
+
+
+  findChildrenOf2 = (categoryId: string) => {
+
+    const groupLevel = (): PipelineStage[] => ([
+      { $sort: { left: 1 } },
+      { $group: { _id: "$parent", children: { $push: "$$ROOT" } } },
+      { $lookup: { from: "categories", localField: "_id", foreignField: "_id", as: "parent" } },
+      { $unwind: "$parent" },
+      {
+        $project: {
+          _id: "$parent._id",
+          name: "$parent.name",
+          parent: "$parent.parent",
+          children: "$children",
+          left: "$parent.left",
+          right: "$parent.right",
+          depth: "$parent.depth",
+        }
+      },
+    ]);
+
+    let query: PipelineStage[] = [];
+    for (let i = 0; i < 3; i++) {
+      query = [...query, ...groupLevel()];
+    }
+
+    return from(this.model.aggregate(query)).pipe(map(x => x[0]));
+  }
+
+  findParentsOf = (categoryId: string) =>
+    from(this.model.findOne({ _id: categoryId }).exec()).pipe(
+      throwErrorIfNullish(`Category with id ${categoryId} not found`),
+      switchMap(({ left, right }) => this.model
+        .find({
+          left: { $lt: left },
+          right: { $gt: right },
+        })
+        .sort('left')
+        .exec()
+      )
+    );
+
   create = (name: string, parentId: string | null) => of(parentId).pipe(
     switchMap(parentId => parentId
       ? from(this.model.findOne({ _id: parentId }).exec()).pipe(
@@ -22,8 +81,8 @@ export class CategoriesRepository {
       )
       : proceed()
     )).pipe(
-      map(parent => parent?.right ?? 1),
-      switchMap((left) =>
+      map(parent => ({ parent, left: parent?.right ?? 1 })),
+      switchMap(({ parent, left }) =>
         forkJoin([
           this.model.updateMany(
             { right: { $gte: left } },
@@ -34,7 +93,13 @@ export class CategoriesRepository {
             { $inc: { left: 2 } }
           ).exec()
         ]).pipe(
-          switchMap(() => new this.model({ name, left, right: left + 1 }).save())
+          switchMap(() => new this.model({
+            name,
+            left,
+            right: left + 1,
+            depth: (parent?.depth ?? 0) + 1,
+            parent: parent?._id ?? null
+          }).save())
         )
       )
     );
@@ -59,139 +124,6 @@ export class CategoriesRepository {
         )
       ),
       map(() => null)
-    );
-
-  findByName = (name: string) =>
-    from(this.model.findOne({ name }).exec());
-
-  findLeafs = () => from(this.model.find(
-    { $expr: { $eq: [{ $sum: ["$left", 1] }, "$right"] } },
-    { _id: 1, name: 1 }
-  ).exec());
-
-  findPathById = (id: string) =>
-    from(this.model.aggregate<CategoryDocument>([
-      { $match: { _id: new mongoose.Types.ObjectId(id) } },
-      {
-        $lookup: {
-          from: "categories",
-          let: { l: "$left", r: "$right", nodeName: "$name" },
-          pipeline: [
-            {
-              $match: {
-                $expr: {
-                  $and: [{ $lte: ["$left", "$$l"] }, { $gte: ["$right", "$$r"] },]
-                }
-              }
-            },
-            { $sort: { left: 1 } }
-          ],
-          as: "parents"
-        }
-      },
-      { $unwind: "$parents" },
-      { $replaceRoot: { newRoot: '$parents' } }
-    ]).exec());
-
-  findDirectChildrenById = (id: string) =>
-    from(this.model.findById(id).exec()).pipe(
-      throwErrorIfNullish(),
-      switchMap((parent) =>
-        from(this.model.aggregate<CategoryDocumentWithDepth>([{
-          $match: {
-            $expr: {
-              $and: [{ $gt: ["$left", parent.left] }, { $lt: ["$right", parent.right] },]
-            }
-          }
-        },
-        {
-          $lookup: {
-            from: "categories",
-            let: { nodeLeft: "$left", nodeRight: "$right" },
-            pipeline: [
-              {
-                $match: {
-                  $expr: {
-                    $and: [
-                      { $lte: ["$left", "$$nodeLeft"] }, { $gte: ["$right", "$$nodeRight"] },
-                      { $gt: ["$left", parent.left] }, { $lt: ["$right", parent.right] }
-                    ]
-                  }
-                }
-              },
-              { $count: "depth" }
-            ],
-            as: "parents"
-          }
-        },
-        { $unwind: "$parents" },
-        { $match: { $expr: { $eq: [1, "$parents.depth"] } } },
-        { $addFields: { depth: "$parents.depth" } },
-        { $sort: { left: 1 } },
-        { $project: { _id: 1, name: 1, depth: 1, left: 1, right: 1 } }
-        ]).exec()
-        )
-      )
-    );
-
-
-  findWithDepthById = (id: string) =>
-    from(this.model.findById(id).exec()).pipe(
-      throwErrorIfNullish(`Category with id: ${id} is not found`),
-      switchMap((parent) =>
-        from(this.model.aggregate<CategoryDocumentWithDepth>([
-          {
-            $lookup: {
-              from: "categories",
-              let: { l: "$left", r: "$right" },
-              pipeline: [
-                {
-                  $match: {
-                    $expr: {
-                      $and: [
-                        { $lte: ["$left", "$$l"] }, { $gte: ["$right", "$$r"] },
-                        { $gte: ["$left", parent.left] }, { $lte: ["$right", parent.right] }
-                      ]
-                    }
-                  }
-                },
-                { $count: "depth" }
-              ],
-              as: "parents"
-            }
-          },
-          { $unwind: "$parents" },
-          { $addFields: { depth: "$parents.depth" } },
-          { $sort: { left: 1 } }
-        ]).exec())
-      )
-    );
-
-
-  getParentsOf = (categoryId: string) =>
-    from(this.model.findOne({ _id: categoryId }).exec()).pipe(
-      throwErrorIfNullish(`Category with id ${categoryId} not found`),
-      switchMap(({ left, right }) => this.model
-        .find({
-          left: { $lt: left },
-          right: { $gt: right },
-        })
-        .sort('left')
-        .exec()
-      )
-    );
-
-  getChildrenOf = (categoryId: string) =>
-    from(this.model.findOne({ _id: categoryId }).exec()).pipe(
-      throwErrorIfNullish(`Category with id ${categoryId} not found`),
-      switchMap(({ left, right }: CategoryDocument) => this.model
-        .find({
-          left: { $gt: left },
-          right: { $lt: right },
-        })
-        .sort('left')
-        .exec()
-      )
     );
 
   seed = (root: CategorySeed) =>

@@ -1,5 +1,5 @@
 import { Category } from "@domain/category/category";
-import { CategoryDocument, CategoryDocumentWithDepth } from "@infra/categories/categories.schema";
+import { CategoryDocument } from "@infra/categories/categories.schema";
 import { CategoryDto } from "@shared/dto/catogory.dto";
 import { map } from "lodash/fp";
 
@@ -11,11 +11,11 @@ export const toCategory = (c: CategoryDocument): Category => ({
 
 export const toCategories = map(toCategory)
 
-export const toCategoriesTree = (docs: CategoryDocumentWithDepth[]): Category => {
+export const toCategoriesTree = (docs: CategoryDocument[]): Category => {
   const root = docs.find(d => d.depth === 1)!;
   const rootCategory = toCategory(root);
 
-  const buildTree = (parentNode: Category, parentDoc: CategoryDocumentWithDepth) => {
+  const buildTree = (parentNode: Category, parentDoc: CategoryDocument) => {
     const childDocs = docs
       .filter(subC =>
         subC.left > parentDoc.left &&

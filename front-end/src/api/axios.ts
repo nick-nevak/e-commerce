@@ -1,10 +1,11 @@
 // create axios instance
 
 import axios from "axios";
+import { Category } from "../types/category";
 
 export const httpClient = axios.create({
   baseURL: "http://localhost:3001",
-  timeout: 5000,
+  timeout: 60000,
 });
 
 // const mock = new MockAdapter(httpClient);
@@ -24,3 +25,6 @@ export const fetchProductDetails = async (id: string) =>
 
 export const fetchFilters = async () =>
   (await httpClient.get("/catalog/filters")).data;
+
+export const fetchCategories = async () =>
+  (await httpClient.get<Category>("/categories")).data.children!;

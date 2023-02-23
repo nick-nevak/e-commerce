@@ -1,36 +1,27 @@
 import { CategoriesRepository } from '@infra/categories/categories.repository';
-import { toCategories, toCategoriesTree } from '@mappers/categories.mapper';
+import { toCategories } from '@mappers/categories.mapper';
 import { Injectable } from '@nestjs/common';
 import { throwErrorIfNullish } from '@shared/utils/rx/rx-js';
-import { map, switchMap } from 'rxjs';
+import { map, switchMap, tap } from 'rxjs';
 
 @Injectable()
 export class CategoriesService {
   constructor(private readonly repository: CategoriesRepository) { }
 
-  getFullTree = () =>
+  getFullTree = (): any =>
     this.repository.findByName('root').pipe(
       throwErrorIfNullish('Root category not found'),
-      switchMap(({ id }) => this.getTreeById(id)),
+      switchMap(({ id }) => this.getChildrenOf(id)),
     );
 
-  getTreeById = (id: string) =>
-    this.repository.findWithDepthById(id).pipe(
-      map(toCategoriesTree)
-    );
-
-  getDirectChildrenById = (id: string) =>
-    this.repository.findDirectChildrenById(id).pipe(
-      map(toCategories)
+  getChildrenOf = (id: string) =>
+    this.repository.findChildrenOf2(id).pipe(
+      // map(toCategoriesTree),
+      tap((x) => { console.log('mapped'); })
     );
 
   getPathById = (id: string) =>
-    this.repository.findPathById(id).pipe(
-      map(toCategories)
-    );
-
-  getLeafs = () =>
-    this.repository.findLeafs().pipe(
+    this.repository.findParentsOf(id).pipe(
       map(toCategories)
     );
 

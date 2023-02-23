@@ -7,27 +7,19 @@ import { map } from 'rxjs';
 export class CategoriesController {
   constructor(private readonly serive: CategoriesService) { }
 
-  @Get()
+  @Get('/')
   getFullTree() {
     return this.serive.getFullTree().pipe(map(toCategoryDto));
   }
 
   @Get('subcategories/:id')
   getSubtree(@Param('id') id: string) {
-    return this.serive.getTreeById(id).pipe(map(toCategoryDto));
+    return this.serive.getChildrenOf(id).pipe(map(toCategoryDto));
   }
 
-  @Get('direct-children/:id')
-  getDirectChildrenOf(@Param('id') id: string) {
-    return this.serive.getDirectChildrenById(id).pipe(map(toCategoryDtos));
-  }
 
   @Get('path-to/:id')
   getPathById(@Param('id') id: string) {
     return this.serive.getPathById(id).pipe(map(toCategoryDtos));
-  }
-  @Get('leafs')
-  getLeafs() {
-    return this.serive.getLeafs().pipe(map(toCategoryDtos));
   }
 }

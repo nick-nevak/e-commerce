@@ -12,20 +12,20 @@ const CatalogFilters = (props: Props) => {
 
 
   return (
-    <div>
+    <>
       {props.filters.map((filter) => (
-
-        <div key={filter.name}>
-          <Accordion expanded={true}>
-            <AccordionSummary
-              expandIcon={<ExpandMoreIcon />}
-            >
-              <Typography>{filter.name}</Typography>
-            </AccordionSummary>
-            <AccordionDetails>
+        <Accordion
+          key={filter.id}
+          expanded={true}>
+          <AccordionSummary
+            expandIcon={<ExpandMoreIcon />}
+            children={<Typography>{filter.name}</Typography>}
+          />
+          <AccordionDetails
+            children={
               <List>
                 {filter.values.map((value) => (
-                  <ListItem key={value.name}>
+                  <ListItem key={value.id}>
                     <Checkbox
                       checked={value.checked}
                       value={value.name}
@@ -36,12 +36,12 @@ const CatalogFilters = (props: Props) => {
                     <ListItemText primary={value.name} />
                   </ListItem>
                 ))}
-              </List>
-            </AccordionDetails>
-          </Accordion>
-        </div>
-      ))}
-    </div>
+              </List>}
+          />
+        </Accordion>
+      ))
+      }
+    </>
   );
 };
 
