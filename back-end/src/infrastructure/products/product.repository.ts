@@ -1,8 +1,10 @@
 import { Product } from '@domain/product/product';
+import { CategoryDocument } from '@infra/categories/categories.schema';
+import { generateProductsSeed } from '@infra/seeds/products-seed';
 import { InjectModel } from '@nestjs/mongoose';
 import { log, proceed, throwErrorIfNullish } from '@shared/utils/rx/rx-js';
 import { Model } from 'mongoose';
-import { from, map, switchMap } from 'rxjs';
+import { from, map, of, switchMap } from 'rxjs';
 import { ProductDocument, ProductModel } from './product.schema';
 
 export class ProductRepository {
@@ -25,12 +27,22 @@ export class ProductRepository {
   delete = (id: string) =>
     from(this.model.findByIdAndDelete(id).exec()).pipe(map(() => null));
 
-  seed = (products: InstanceType<typeof ProductModel>[]) => from(this.model.estimatedDocumentCount().exec()).pipe(
-    switchMap(count => count > 0
-      ? proceed().pipe(
-        log('Products already exist in the database. Skipping seed data.'))
-      : from(this.model.insertMany(products)).pipe(
-        log('Seed data added to the database.'))
-    )
-  );
+  seed = (categories: CategoryDocument[]) =>
+    from(this.model.estimatedDocumentCount().exec()).pipe(
+      switchMap(count => count === 0
+        ? of(categories).pipe(
+          map(categories =>
+            categories.reduce<InstanceType<typeof ProductModel>[]>(
+              (products, category) => products.concat(generateProductsSeed(10, category)),
+              []
+            )
+          ),
+          switchMap(products => this.model.insertMany(products)),
+          log('Seed products added to the database.')
+        )
+        : proceed().pipe(
+          log('Products already exist in the database. Skipping seed data.')
+        )
+      ),
+    );
 }

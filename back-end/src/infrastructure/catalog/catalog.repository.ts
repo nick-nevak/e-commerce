@@ -1,9 +1,10 @@
 import { ProductModel } from '@infra/products/product.schema';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, ObjectId } from 'mongoose';
-import { from } from 'rxjs';
+import { Document, Model } from 'mongoose';
+import { from, of, switchMap } from 'rxjs';
 
 export type CatalogItemModel = {
+  _id: string;
   title: string;
   brand: string;
   price: number;
@@ -11,8 +12,7 @@ export type CatalogItemModel = {
   imageUrl: string;
 };
 
-export type CatalogItemDocument = { _id: ObjectId } & CatalogItemModel &
-  Document;
+export type CatalogItemDocument = CatalogItemModel & Document;
 
 export class CatalogRepository {
   constructor(
@@ -21,6 +21,7 @@ export class CatalogRepository {
   ) { }
 
   private readonly projection: { [K in keyof CatalogItemModel]: any } = {
+    _id: 1,
     title: 1,
     price: 1,
     description: 1,
@@ -29,6 +30,24 @@ export class CatalogRepository {
   };
 
   findAll = () => from(
-    this.model.aggregate<CatalogItemDocument>([{ $project: this.projection }]).exec(),
+    this.model.find({}, this.projection).lean().exec(),
+  );
+
+  findPage = (page: number, pageSize: number) =>
+    of((page - 1) * pageSize).pipe(
+      switchMap((skip) =>
+        this.model.find({}, this.projection)
+          .skip(skip)
+          .limit(pageSize)
+          .lean()
+          .exec()
+      )
+    );
+
+
+  findByCategoryId = (id: string) => from(
+    this.model.find({ category: id }, this.projection)
+      .lean()
+      .exec(),
   );
 }

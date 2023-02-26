@@ -1,4 +1,4 @@
-import { CategoriesService } from '@app/categories.service';
+import { CategoriesService } from '@app/categories/categories.service';
 import { toCategoryDto, toCategoryDtos } from '@mappers/categories.mapper';
 import { Controller, Get, Param } from '@nestjs/common';
 import { map } from 'rxjs';
@@ -9,7 +9,7 @@ export class CategoriesController {
 
   @Get('/')
   getFullTree() {
-    return this.serive.getFullTree().pipe(map(toCategoryDto));
+    return this.serive.getFullTree();
   }
 
   @Get('subcategories/:id')

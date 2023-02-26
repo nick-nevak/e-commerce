@@ -3,3 +3,8 @@ export type Category = {
   name: string;
   children: Category[] | null;
 };
+
+export type ProductCategory = {
+  id: string;
+  name: string;
+};

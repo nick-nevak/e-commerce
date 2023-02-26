@@ -20,6 +20,7 @@ export class CategoryModel {
 }
 
 export type CategoryDocument = CategoryModel & Document;
+export type CategoryGroupProjection = CategoryDocument & { children: CategoryDocument[] };
 export const CategorySchema = SchemaFactory.createForClass(CategoryModel);
 
 // CategorySchema.index({ left: 1, right: -1 });

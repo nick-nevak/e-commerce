@@ -1,24 +1,26 @@
-import { ProductsService } from '@app/products.service';
+import { ProductsService } from '@app/products/products.service';
+import { CategoriesRepositoryModule } from '@infra/categories/categories-repository.module';
+import { CategoriesRepository } from '@infra/categories/categories.repository';
 import { ProductRepository } from '@infra/products/product.repository';
-import { ProductModel, ProductSchema } from '@infra/products/product.schema';
-import { productsSeed } from '@infra/seeds/products-seed';
+import { ProductsRepositoryModule } from '@infra/products/products-repository.module';
 import { Module, OnApplicationBootstrap } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
+import { switchMap } from 'rxjs';
 import { ProductsController } from './products.controller';
 
 @Module({
-  imports: [
-    MongooseModule.forFeature([
-      { name: ProductModel.name, schema: ProductSchema },
-    ]),
-  ],
+  imports: [ProductsRepositoryModule, CategoriesRepositoryModule],
   controllers: [ProductsController],
-  providers: [ProductsService, ProductRepository],
+  providers: [ProductsService, ProductRepository, CategoriesRepository],
 })
 export class ProductsModule implements OnApplicationBootstrap {
-  constructor(private readonly repository: ProductRepository) { }
+  constructor(
+    private readonly productRepository: ProductRepository,
+    private readonly categoriesRepository: CategoriesRepository
+  ) { }
 
   async onApplicationBootstrap() {
-    await this.repository.seed(productsSeed);
+    this.categoriesRepository.findLeafs().pipe(
+      switchMap((categories) => this.productRepository.seed(categories))
+    ).subscribe();
   }
 }

@@ -6,7 +6,7 @@ export class CatalogItem {
     public readonly price: number,
     public readonly description: string,
     public readonly imageUrl: string,
-  ) {}
+  ) { }
 
   static create(item: InstanceType<typeof CatalogItem>): CatalogItem {
     return new CatalogItem(

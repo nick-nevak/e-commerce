@@ -1,12 +1,12 @@
-import { Category } from "@domain/category/category";
+import { Category, ProductCategory } from "@domain/category/category";
 import { CategoryDocument } from "@infra/categories/categories.schema";
 import { CategoryDto } from "@shared/dto/catogory.dto";
 import { map } from "lodash/fp";
 
-export const toCategory = (c: CategoryDocument): Category => ({
-  id: c._id,
-  name: c.name,
-  children: null
+export const toCategory = (c: CategoryDocument): Category => c as any as Category;
+
+export const toProductCategory = (c: CategoryDocument): ProductCategory => ({
+  id: c.id, name: c.name
 });
 
 export const toCategories = map(toCategory)
@@ -38,5 +38,9 @@ export const toCategoriesTree = (docs: CategoryDocument[]): Category => {
 
 export const toCategoryDto = (c: Category): CategoryDto =>
   ({ ...c });
+
+export const toProductCategoryDto = (c: ProductCategory): ProductCategory => ({
+  id: c.id, name: c.name
+});
 
 export const toCategoryDtos = map(toCategoryDto)

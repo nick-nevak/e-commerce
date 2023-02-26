@@ -1,4 +1,4 @@
-import { ProductsService } from '@app/products.service';
+import { ProductsService } from '@app/products/products.service';
 import { toProductDto, toProductDtos } from '@mappers/product.mapper';
 import {
   Body,

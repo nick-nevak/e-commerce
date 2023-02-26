@@ -9,8 +9,14 @@ export class CatalogService {
   constructor(private readonly repository: CatalogRepository) { }
 
   getAll = () =>
-    this.repository.findAll().pipe(map(toCatalogItems));
+    this.repository.findAll().pipe(map(x => toCatalogItems(x)));
+
+  getPage = (page: number, pageSize: number) =>
+    this.repository.findPage(page, pageSize).pipe(map(toCatalogItems));
 
   getFilters = () =>
     seedFilters;
+
+  getByCategoryId = (id: string) =>
+    this.repository.findByCategoryId(id).pipe(map(toCatalogItems));
 }

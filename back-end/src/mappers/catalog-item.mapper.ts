@@ -1,10 +1,10 @@
 import { CatalogItem } from '@domain/catalog/catalog-item';
-import { CatalogItemDocument } from '@infra/catalog/catalog.repository';
+import { CatalogItemModel } from '@infra/catalog/catalog.repository';
 import { CatalogItemDto } from '@shared/dto/catalog-item.dto';
 import { map } from 'lodash/fp';
 
-export const toCatalogItem = (p: CatalogItemDocument): CatalogItem =>
-  CatalogItem.create({ ...p, id: p._id.toString(), });
+export const toCatalogItem = (p: CatalogItemModel): CatalogItem =>
+  CatalogItem.create({ ...p, id: p._id });
 
 export const toCatalogItemDto = (p: CatalogItem): CatalogItemDto =>
   ({ ...p, });

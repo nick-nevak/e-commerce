@@ -1,9 +1,11 @@
+import { ProductCategoryDto } from "./catogory.dto";
+
 export interface ProductDto {
   id: string;
   title: string;
   price: number;
   description: string;
-  category: string;
+  category: ProductCategoryDto;
   deliveryTime: string | Date;
   brand: string;
   rating: number;

@@ -1,13 +1,10 @@
-import { CategorySeed } from '@infra/seeds/categories.seed';
+import { CategorySeed, generateCategoriesSeed, maxDepth } from '@infra/seeds/categories.seed';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { log, proceed, throwErrorIfNullish } from '@shared/utils/rx/rx-js';
-import mongoose, { Model, PipelineStage } from 'mongoose';
+import { Model, PipelineStage } from 'mongoose';
 import { concat, firstValueFrom, forkJoin, from, map, of, switchMap, tap } from 'rxjs';
-import { CategoryDocument, CategoryModel } from './categories.schema';
-
-const ObjectId = mongoose.Types.ObjectId;
-
+import { CategoryDocument, CategoryGroupProjection, CategoryModel } from './categories.schema';
 
 @Injectable()
 export class CategoriesRepository {
@@ -33,8 +30,7 @@ export class CategoriesRepository {
     );
 
 
-  findChildrenOf2 = (categoryId: string) => {
-
+  findFullTree = () => {
     const groupLevel = (): PipelineStage[] => ([
       { $sort: { left: 1 } },
       { $group: { _id: "$parent", children: { $push: "$$ROOT" } } },
@@ -54,12 +50,18 @@ export class CategoriesRepository {
     ]);
 
     let query: PipelineStage[] = [];
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < maxDepth; i++) {
       query = [...query, ...groupLevel()];
     }
 
-    return from(this.model.aggregate(query)).pipe(map(x => x[0]));
+    return from(this.model.aggregate(query)).pipe(
+      map((projection: { 0: CategoryGroupProjection }) => projection[0])
+    );
   }
+
+  getMaxDepth = () =>
+    from(this.model.find().sort({ depth: -1 }).limit(1).exec())
+      .pipe(map(p => p[0].depth));
 
   findParentsOf = (categoryId: string) =>
     from(this.model.findOne({ _id: categoryId }).exec()).pipe(
@@ -72,6 +74,11 @@ export class CategoriesRepository {
         .sort('left')
         .exec()
       )
+    );
+
+  findLeafs = () =>
+    this.getMaxDepth().pipe(
+      switchMap((maxDepth) => this.model.find({ depth: maxDepth }).exec())
     );
 
   create = (name: string, parentId: string | null) => of(parentId).pipe(
@@ -126,11 +133,11 @@ export class CategoriesRepository {
       map(() => null)
     );
 
-  seed = (root: CategorySeed) =>
+  seed = () =>
     from(this.model.estimatedDocumentCount().exec()).pipe(
       switchMap(count => count === 0
-        ? proceed().pipe(
-          tap(async () => {
+        ? of(generateCategoriesSeed()).pipe(
+          tap(async (root) => {
             const traverse = async ({ name, children }: CategorySeed, parentId: string | null) => {
               const { id } = await firstValueFrom(this.create(name, parentId));
               for (let child of children ?? []) {
@@ -139,10 +146,10 @@ export class CategoriesRepository {
             }
             traverse(root, null)
           }),
-          log('Seed data added to the database.')
+          log('Seed categories added to the database.')
         )
         : proceed().pipe(
-          log('Products already exist in the database. Skipping seed data.')
+          log('Categories already exist in the database. Skipping seed data.')
         )
       )
     );
