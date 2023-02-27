@@ -1,12 +1,12 @@
 import { Product } from '@domain/product/product';
-import { ProductRepository } from '@infra/products/product.repository';
+import { ProductsRepository } from '@infra/products/products.repository';
 import { toProduct, toProducts } from '@mappers/product.mapper';
 import { Injectable } from '@nestjs/common';
 import { map } from 'rxjs';
 
 @Injectable()
 export class ProductsService {
-  constructor(private readonly repository: ProductRepository) { }
+  constructor(private readonly repository: ProductsRepository) { }
 
   getAllProducts = () =>
     this.repository.findAll().pipe(map(toProducts));

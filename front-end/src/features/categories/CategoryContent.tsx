@@ -1,12 +1,13 @@
 import { List, ListItem, ListItemText, Typography } from '@mui/material';
 import Box from '@mui/material/Box';
-import { Category } from '../../../types/category';
+import { Category } from '../../types/category';
 
 
 type Props = {
   parentCategory: Category;
+  onSelect: (id: string) => void;
 }
-const CategoryContent = ({ parentCategory }: Props) => {
+const CategoryContent = ({ parentCategory, onSelect }: Props) => {
   return (
     <Box
       sx={{ padding: '20px 40px' }} >
@@ -32,6 +33,7 @@ const CategoryContent = ({ parentCategory }: Props) => {
                   <ListItem
                     id={id}
                     sx={{ padding: 0, cursor: 'pointer' }}
+                    onClick={() => { onSelect(id); }}
                     children={<ListItemText primary={name} />}
                   />)}
             />)}

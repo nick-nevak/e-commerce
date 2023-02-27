@@ -1,7 +1,9 @@
+import { CategoriesRepository } from '@infra/categories/categories.repository';
 import { ProductModel } from '@infra/products/product.schema';
 import { InjectModel } from '@nestjs/mongoose';
-import { Document, Model } from 'mongoose';
-import { from, of, switchMap } from 'rxjs';
+import { map as _map } from 'lodash/fp';
+import { Document, Model, Types } from 'mongoose';
+import { from, map, of, switchMap } from 'rxjs';
 
 export type CatalogItemModel = {
   _id: string;
@@ -18,6 +20,7 @@ export class CatalogRepository {
   constructor(
     @InjectModel(ProductModel.name)
     private readonly model: Model<CatalogItemDocument>,
+    private readonly categoriesRepository: CategoriesRepository
   ) { }
 
   private readonly projection: { [K in keyof CatalogItemModel]: any } = {
@@ -46,8 +49,13 @@ export class CatalogRepository {
 
 
   findByCategoryId = (id: string) => from(
-    this.model.find({ category: id }, this.projection)
-      .lean()
-      .exec(),
+    this.categoriesRepository.findLeafsOf(id).pipe(
+      map(_map(c => new Types.ObjectId(c.id))),
+      switchMap(ids =>
+        this.model.find({ category: { $in: ids } }, this.projection)
+          .lean()
+          .exec()
+      )
+    )
   );
 }

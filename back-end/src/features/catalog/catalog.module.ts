@@ -1,17 +1,11 @@
 import { CatalogService } from '@app/catalog/catalog.service';
-import { CatalogRepository } from '@infra/catalog/catalog.repository';
-import { ProductModel, ProductSchema } from '@infra/products/product.schema';
+import { CatalogRepositoryModule } from '@infra/catalog/catalog-repository.module';
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
 import { CatalogController } from './catalog.controller';
 
 @Module({
-  imports: [
-    MongooseModule.forFeature([
-      { name: ProductModel.name, schema: ProductSchema },
-    ]),
-  ],
+  imports: [CatalogRepositoryModule],
   controllers: [CatalogController],
-  providers: [CatalogService, CatalogRepository],
+  providers: [CatalogService,],
 })
 export class CatalogModule { }

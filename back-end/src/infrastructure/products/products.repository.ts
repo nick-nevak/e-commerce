@@ -7,7 +7,7 @@ import { Model } from 'mongoose';
 import { from, map, of, switchMap } from 'rxjs';
 import { ProductDocument, ProductModel } from './product.schema';
 
-export class ProductRepository {
+export class ProductsRepository {
   constructor(
     @InjectModel(ProductModel.name)
     private readonly model: Model<ProductDocument>,

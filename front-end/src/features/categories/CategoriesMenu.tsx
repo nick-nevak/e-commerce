@@ -6,14 +6,15 @@ import List from '@mui/material/List';
 import ListItemButton from '@mui/material/ListItemButton';
 import Paper from '@mui/material/Paper';
 import { RefObject, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Category } from '../../../types/category';
+import { Category } from '../../types/category';
 import CategoryContent from './CategoryContent';
 
 type Props = {
   anchorEl: RefObject<HTMLElement>,
   categories: Category[];
+  onSelect: (id: string) => void;
 }
-const CategoriesMenu = ({ anchorEl, categories }: Props) => {
+const CategoriesMenu = ({ anchorEl, categories, onSelect }: Props) => {
   const selfRef = useRef<HTMLDivElement>(null);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
 
@@ -52,7 +53,7 @@ const CategoriesMenu = ({ anchorEl, categories }: Props) => {
         </List>
         <Box>
           {selectedCategory
-            ? <CategoryContent parentCategory={selectedCategory} />
+            ? <CategoryContent parentCategory={selectedCategory} onSelect={onSelect} />
             : null}
         </Box>
       </Box>

@@ -1,5 +1,5 @@
-import { ProductRepository } from '@infra/products/product.repository';
 import { ProductModel, ProductSchema } from '@infra/products/product.schema';
+import { ProductsRepository } from '@infra/products/products.repository';
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 
@@ -10,7 +10,7 @@ const ProductModelModule = MongooseModule.forFeature([
 
 @Module({
   imports: [ProductModelModule],
-  providers: [ProductRepository],
-  exports: [ProductRepository, ProductModelModule]
+  providers: [ProductsRepository],
+  exports: [ProductsRepository, ProductModelModule]
 })
 export class ProductsRepositoryModule { }

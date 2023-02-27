@@ -12,21 +12,29 @@ export class CategoriesRepository {
     @InjectModel(CategoryModel.name) private model: Model<CategoryDocument>,
   ) { }
 
-  findByName = (name: string) =>
-    from(this.model.findOne({ name }).exec());
+  findById = (id: string) => from(
+    this.model.findById(id).exec()
+  ).pipe(
+    throwErrorIfNullish(`Category with id ${id} not found`)
+  );
 
-  findChildrenOf = (categoryId: string) =>
-    from(this.model.findOne({ _id: categoryId }).exec()).pipe(
-      throwErrorIfNullish(`Category with id ${categoryId} not found`),
-      switchMap(({ left, right }: CategoryDocument) => this.model
-        .find({
-          left: { $gte: left },
-          right: { $lte: right },
-        })
-        .sort({ left: 1, right: -1 })
-        .exec()
-      ),
-      tap((x) => { console.log('fetched'); }),
+  findByName = (name: string) => from(
+    this.model.findOne({ name }).exec()
+  ).pipe(
+    throwErrorIfNullish(`Category with name ${name} not found`)
+  );
+
+  findChildrenOf = (id: string) =>
+    this.findById(id).pipe(
+      switchMap(({ left, right }) =>
+        this.model
+          .find({
+            left: { $gte: left },
+            right: { $lte: right },
+          })
+          .sort({ left: 1, right: -1 })
+          .exec()
+      )
     );
 
 
@@ -39,6 +47,7 @@ export class CategoriesRepository {
       {
         $project: {
           _id: "$parent._id",
+          id: "$parent._id",
           name: "$parent.name",
           parent: "$parent.parent",
           children: "$children",
@@ -60,12 +69,14 @@ export class CategoriesRepository {
   }
 
   getMaxDepth = () =>
-    from(this.model.find().sort({ depth: -1 }).limit(1).exec())
-      .pipe(map(p => p[0].depth));
+    from(
+      this.model.find().sort({ depth: -1 }).limit(1).exec()
+    ).pipe(
+      map(p => p[0].depth)
+    );
 
-  findParentsOf = (categoryId: string) =>
-    from(this.model.findOne({ _id: categoryId }).exec()).pipe(
-      throwErrorIfNullish(`Category with id ${categoryId} not found`),
+  findParentsOf = (id: string) =>
+    this.findById(id).pipe(
       switchMap(({ left, right }) => this.model
         .find({
           left: { $lt: left },
@@ -76,17 +87,29 @@ export class CategoriesRepository {
       )
     );
 
-  findLeafs = () =>
+  findAllLeafs = () =>
     this.getMaxDepth().pipe(
       switchMap((maxDepth) => this.model.find({ depth: maxDepth }).exec())
     );
 
-  create = (name: string, parentId: string | null) => of(parentId).pipe(
-    switchMap(parentId => parentId
-      ? from(this.model.findOne({ _id: parentId }).exec()).pipe(
-        throwErrorIfNullish(`Parent category with id ${parentId} not found`)
+  findLeafsOf = (id: string) =>
+    this.findById(id).pipe(
+      switchMap(({ left, right }) =>
+        this.getMaxDepth().pipe(
+          switchMap((maxDepth) =>
+            this.model.find({
+              depth: maxDepth,
+              left: { $gte: left },
+              right: { $lte: right },
+            }).exec()
+          )
+        )
       )
-      : proceed()
+    )
+
+  create = (name: string, parentId: string | null) => of(parentId).pipe(
+    switchMap((parentId) =>
+      parentId ? this.findById(parentId) : proceed()
     )).pipe(
       map(parent => ({ parent, left: parent?.right ?? 1 })),
       switchMap(({ parent, left }) =>
@@ -112,8 +135,7 @@ export class CategoriesRepository {
     );
 
   deleteById = (id: string) =>
-    from(this.model.findOne({ _id: id }).exec()).pipe(
-      throwErrorIfNullish(`Category with id ${id} not found`),
+    this.findById(id).pipe(
       map(({ left, right }) => ({ left, right, width: right - left + 1 })),
       switchMap(({ left, right, width }) =>
         concat(

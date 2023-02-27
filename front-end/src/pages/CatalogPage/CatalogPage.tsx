@@ -1,12 +1,13 @@
 import { Box } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchFilters, fetchProducts } from "../../api/axios";
+import { fetchFilters, fetchProductsByCategory } from "../../api/axios";
 import { CATALOG_ROUTE } from "../../routing/routes";
 import { Filter } from "../../types/filters";
 import { Product } from "../../types/product";
 import CatalogFilters from "./CatalogFilters";
 import CatalogSorting from "./CatalogSorting";
+import useQueryParams from "./hooks/use-query-params";
 import ProductsList from "./ProductsList";
 
 const CatalogPage = () => {
@@ -14,14 +15,20 @@ const CatalogPage = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [filters, setFilters] = useState<Filter[]>([]);
 
+  const [params, updateQueryParam] = useQueryParams(['category']);
+
+  const fetchData = useCallback(async () => {
+    const products = await fetchProductsByCategory(params.category);
+    const filters = await fetchFilters();
+    setProducts(products);
+    setFilters(filters)
+  }, [params]);
+
   useEffect(() => {
-    fetchProducts().then((products) => {
-      setProducts(products);
-    });
-    fetchFilters().then((filters) => {
-      setFilters(filters);
-    });
-  }, []);
+    if (params.category) {
+      fetchData();
+    }
+  }, [params]);
 
   const handleProductClick = ({ id }: Product) => {
     navigate(`${CATALOG_ROUTE}/${id}`);
